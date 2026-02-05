@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connectivity Test</title>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .test-section {
+            background: #2a2a2a;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #4a4a4a;
+        }
+        .success {
+            border-left-color: #10b981;
+            color: #10b981;
+        }
+        .error {
+            border-left-color: #ef4444;
+            color: #ef4444;
+        }
+        .info {
+            border-left-color: #3b82f6;
+            color: #3b82f6;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        #results {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Backend Connectivity Test</h1>
+    <button onclick="runAllTests()">Run All Tests</button>
+    <button onclick="clearResults()">Clear Results</button>
+    
+    <div id="results"></div>
+
+    <script>
+        const resultsDiv = document.getElementById('results');
+        
+        function addResult(testName, status, message) {
+            const div = document.createElement('div');
+            div.className = `test-section ${status}`;
+            div.innerHTML = `<strong>${testName}:</strong> ${message}`;
+            resultsDiv.appendChild(div);
+        }
+
+        function clearResults() {
+            resultsDiv.innerHTML = '';
+        }
+
+        async function testHttpEndpoint() {
+            try {
+                const response = await fetch('http://localhost:3000');
+                const text = await response.text();
+                addResult('HTTP Endpoint', 'success', `✅ Working - Response: "${text.trim()}"`);
+                return true;
+            } catch (error) {
+                addResult('HTTP Endpoint', 'error', `❌ Failed - ${error.message}`);
+                return false;
+            }
+        }
+
+        async function testTrainingEndpoint() {
+            try {
+                const response = await fetch('http://localhost:3000/api/training', {
+                    method: 'GET'
+                });
+                const data = await response.json();
+                addResult('Training API', 'success', `✅ Working - ${data.count} training examples`);
+                return true;
+            } catch (error) {
+                addResult('Training API', 'error', `❌ Failed - ${error.message}`);
+                return false;
+            }
+        }
+
+        function testSocketConnection() {
+            return new Promise((resolve) => {
+                addResult('Socket.io', 'info', '🔄 Connecting...');
+                
+                const socket = io('http://localhost:3000', {
+                    transports: ['websocket', 'polling']
+                });
+
+                socket.on('connect', () => {
+                    addResult('Socket.io', 'success', `✅ Connected - Socket ID: ${socket.id}`);
+                    
+                    socket.on('user-id', (userId) => {
+                        addResult('Socket Events', 'success', `✅ Received user-id: ${userId}`);
+                    });
+
+                    socket.on('waiting-for-match', () => {
+                        addResult('Socket Events', 'success', '✅ Find-match event working');
+                        socket.disconnect();
+                        resolve(true);
+                    });
+
+                    socket.on('matched', (data) => {
+                        addResult('Socket Events', 'success', `✅ Matched event working - Partner: ${data.partnerId}`);
+                        socket.disconnect();
+                        resolve(true);
+                    });
+
+                    socket.emit('find-match');
+
+                    setTimeout(() => {
+                        socket.disconnect();
+                        addResult('Socket Events', 'info', '⏱️ Test completed (timeout after 3s)');
+                        resolve(true);
+                    }, 3000);
+                });
+
+                socket.on('connect_error', (error) => {
+                    addResult('Socket.io', 'error', `❌ Connection failed - ${error.message}`);
+                    resolve(false);
+                });
+            });
+        }
+
+        async function runAllTests() {
+            clearResults();
+            addResult('Test Suite', 'info', '🚀 Starting connectivity tests...');
+            
+            await testHttpEndpoint();
+            await testTrainingEndpoint();
+            await testSocketConnection();
+            
+            addResult('Test Suite', 'success', '✅ All tests completed!');
+        }
+
+        // Auto-run on load
+        window.onload = () => {
+            runAllTests();
+        };
+    </script>
+</body>
+</html>
+
+
+
+
