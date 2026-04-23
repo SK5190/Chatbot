@@ -1,21 +1,24 @@
 const express = require('express');
+const { isAllowedOrigin } = require('./config/allowedOrigins');
 const { addTrainingData, getTrainingData, trainModel } = require('./service/training.service');
 const generateResponse = require('./service/ai.service');
 const { requestOtp, verifyOtpAndIssueToken, SESSION_TTL_SECONDS } = require('./service/auth.service');
 
 const app = express();
 
-// CORS middleware
+// CORS — production origins via ALLOWED_ORIGINS or FRONTEND_URL (see allowedOrigins.js)
 app.use((req, res, next) => {
-  const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
   const origin = req.headers.origin;
-  
-  if (allowedOrigins.includes(origin)) {
+
+  if (origin && isAllowedOrigin(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
   }
-  
+
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  res.header(
+    'Access-Control-Allow-Headers',
+    'Origin, X-Requested-With, Content-Type, Accept, Authorization'
+  );
   res.header('Access-Control-Allow-Credentials', 'true');
   
   if (req.method === 'OPTIONS') {

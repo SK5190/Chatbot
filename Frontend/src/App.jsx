@@ -301,7 +301,8 @@ function App() {
 
     const socketInstance = io(API_BASE, {
       auth: { token: sessionToken },
-      transports: ['websocket', 'polling']
+      transports: ['websocket', 'polling'],
+      withCredentials: true
     })
 
     setupSocketListeners(socketInstance, {

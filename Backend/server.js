@@ -1,5 +1,6 @@
 require('dotenv').config()
 const app = require('./src/app')
+const { getAllowedOrigins } = require('./src/config/allowedOrigins')
 const { createServer } = require("http");
 const { Server } = require("socket.io");
 const generateResponse = require('./src/service/ai.service')
@@ -22,7 +23,7 @@ const rooms = new Map(); // roomId -> {user1, user2, messages}
 
 const io = new Server(httpServer, {
   cors:{
-    origin: ["http://localhost:5173", "http://localhost:5174"],
+    origin: getAllowedOrigins(),
     methods: ["GET", "POST"],
     credentials: true
   },
